@@ -1,0 +1,30 @@
+
+1. extract csv format training files from tree edit sequences from answer to question for the QA pair training/dev/test data:
+-use submitCondorJobsForAnswerSelection.pl to get all the sequences the first time)
+-run condor_jobs/answerSelection.job (or edu/cmu/cs/lti/ark/TreeEditSequenceFeatureExtractorForAnswerSelection on the training, dev, and test data)
+
+
+2. convert these csv files to weka .arff files 
+java -cp /usr0/tools/weka-3-6-0/weka.jar weka.core.converters.CSVLoader /mal2/mheilman/TreeTransformationSequenceModel/experiments/train-answerSelection.csv > /mal2/mheilman/TreeTransformationSequenceModel/experiments/train-answerSelection.csv.arff
+java -cp /usr0/tools/weka-3-6-0/weka.jar weka.core.converters.CSVLoader /mal2/mheilman/TreeTransformationSequenceModel/experiments/dev-answerSelection.csv > /mal2/mheilman/TreeTransformationSequenceModel/experiments/dev-answerSelection.csv.arff
+java -cp /usr0/tools/weka-3-6-0/weka.jar weka.core.converters.CSVLoader /mal2/mheilman/TreeTransformationSequenceModel/experiments/test-answerSelection.csv > /mal2/mheilman/TreeTransformationSequenceModel/experiments/test-answerSelection.csv.arff
+MAY ALSO HAVE TO CHANGE THE ORDERINGS OF THE "CLASS" ATTRIBUTE IN THE ARFF FILE SO THEY MATCH (e.g., {n,p})
+
+
+
+3. train a weka model and extract predictions and probabilities
+
+java -cp /usr0/tools/weka-3-6-0/weka.jar weka.classifiers.functions.Logistic -t /mal2/mheilman/TreeTransformationSequenceModel/experiments/train-answerSelection.csv.arff  -T /mal2/mheilman/TreeTransformationSequenceModel/experiments/dev-answerSelection.csv.arff -p 0 > weka-output-dev.txt
+
+
+4. convert the weka output to trec_eval format
+
+perl convertWekaOutputToTRECFormat.pl weka-output-dev.txt dev-less-than-40.xml > dev.trec_eval
+perl convertWekaOutputToTRECFormat.pl weka-output-test.txt test-less-than-40.xml > test.trec_eval
+
+
+5. run trec_eval
+
+trec_eval-8.0/trec_eval -q -c eval/Dev-T40.judgment dev.trec_eval
+trec_eval-8.0/trec_eval -q -c eval/Test-T40.judgment test.trec_eval
+
